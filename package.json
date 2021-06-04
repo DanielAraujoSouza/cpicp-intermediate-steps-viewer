@@ -1,0 +1,32 @@
+{
+  "name": "cpicp-viewer",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node ./bin/www",
+    "devstart": "nodemon ./bin/www",
+    "debugstart": "DEBUG=cpicp-viewer:* npm run devstart"
+  },
+  "dependencies": {
+    "cookie-parser": "~1.4.4",
+    "cpicp-module": "file:../cpicp-module",
+    "debug": "~2.6.9",
+    "express": "~4.16.1",
+    "fs": "*",
+    "http-errors": "~1.6.3",
+    "morgan": "~1.9.1",
+    "pcl-module": "file:../pcl-module",
+    "pontu-module": "file:../pontu-module",
+    "pug": "^3.0.2",
+    "socket.io": "^4.1.2"
+  },
+  "devDependencies": {
+    "eslint": "^7.27.0",
+    "eslint-config-airbnb-base": "^14.2.1",
+    "eslint-config-prettier": "^8.3.0",
+    "eslint-plugin-import": "^2.23.3",
+    "eslint-plugin-prettier": "^3.4.0",
+    "nodemon": "^2.0.7",
+    "prettier": "^2.3.0"
+  }
+}

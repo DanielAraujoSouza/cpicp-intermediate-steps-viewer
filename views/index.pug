@@ -1,0 +1,164 @@
+extends layout
+
+mixin cloudOptions
+  option(value='') Selecione uma nuvem
+  each op in clouds
+    option(value=op)= op
+
+block script 
+  //script(src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.module.min.js')
+  //script(src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
+  //script(type='module' src='/javascripts/viewer.js')
+  script(src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js')
+  script(src='https://rawgit.com/dataarts/dat.gui/develop/build/dat.gui.js')
+  script(type='module' src='/javascripts/index.js')
+
+block main
+  .row.vw-100.m-0
+    #side-bar.col-4.w-25.p-3
+      form#cpip-form
+        #accordionConfig.accordion
+          .accordion-item
+            h2#headingClouds.accordion-header
+              button.accordion-button(type='button' 
+                data-bs-toggle='collapse' 
+                data-bs-target='#collapseClouds' 
+                aria-expanded='true' 
+                aria-controls='collapseClouds') Nuvens
+            #collapseClouds.accordion-collapse.collapse.show(aria-labelledby='headingClouds')
+              .accordion-body
+                .row.mb-2
+                  .col
+                    .form-floating          
+                      select#src-cloud-select.form-select.form-select-sm(name='src'
+                        aria-label='Source Cloud Input'
+                        required)
+                        +cloudOptions
+                      label(for='src-cloud-select') Nuvem Source
+                .row.mb-2
+                  .col
+                    .form-floating          
+                        select#tgt-cloud-select.form-select.form-select-sm(name='tgt'
+                          aria-label='Target Cloud Input'
+                          required)
+                          +cloudOptions
+                        label(for='tgt-cloud-select') Nuvem Target
+          .accordion-item
+            h2#headingCpIcp.accordion-header
+              button.accordion-button.collapsed(type='button' 
+                data-bs-toggle='collapse' 
+                data-bs-target='#collapseCpIcp' 
+                aria-expanded='false' 
+                aria-controls='collapseCpIcp') Parâmetros do CP-ICP
+            #collapseCpIcp.accordion-collapse.collapse(aria-labelledby='headingCpIcp')
+              .accordion-body
+                .row.mb-2
+                  .col
+                    .form-floating  
+                      input#np-cpip.form-control.form-control-sm(type='number'
+                        name='np'
+                        min='2'
+                        max='30'
+                        placeholder='Número de partições'
+                        aria-label='Número de partições'
+                        required)
+                      label(for='np-cpip') Número de partições
+                
+                .row.mb-2
+                  .col
+                    .form-floating  
+                      input#rmse-cpicp.form-control.form-control-sm(type='number'
+                        name='rmse'
+                        min='0'
+                        max='30'
+                        step='0.000001'
+                        placeholder='Critérios de parada (RMSE)'
+                        aria-label='Critérios de parada (RMSE)'
+                        required) 
+                      label(for='rmse-cpicp') Critérios de parada (RMSE)
+
+                .row.mb-2
+                  label(for='btnradio1') Eixo de particionamento
+                  #axis-group.btn-group(role='group')
+                    input#axisradio1.btn-check(type='radio' 
+                      name='axis' 
+                      autocomplete='off'
+                      value='x' 
+                      checked)
+                    label.btn.btn-outline-primary(for='axisradio1') x
+                    input#axisradio2.btn-check(type='radio' 
+                      name='axis' 
+                      autocomplete='off'
+                      value='y')
+                    label.btn.btn-outline-primary(for='axisradio2') y
+                    input#axisradio3.btn-check(type='radio' 
+                      name='axis' 
+                      autocomplete='off'
+                      value='z')
+                    label.btn.btn-outline-primary(for='axisradio3') z
+          .accordion-item
+            h2#headingIcp.accordion-header
+              button.accordion-button.collapsed(type='button' 
+                data-bs-toggle='collapse' 
+                data-bs-target='#collapseIcp' 
+                aria-expanded='false' 
+                aria-controls='collapseIcp') Parâmetros do ICP
+            #collapseIcp.accordion-collapse.collapse(aria-labelledby='headingIcp')
+              .accordion-body
+                .row.mb-2
+                  .col
+                    .form-floating  
+                      input#delta-icp.form-control.form-control-sm(type='number'
+                        name='delta'
+                        step='0.000001'
+                        min='0'
+                        max='30'
+                        placeholder='Critérios de parada (DELTA)'
+                        aria-label='Critérios de parada (DELTA)'
+                        required)
+                      label(for='delta-icp') Critérios de parada (DELTA)
+                
+                .row.mb-2
+                  .col
+                    .form-floating  
+                      input#max-dist-icp.form-control.form-control-sm(type='number'
+                        name='max-dist'
+                        min='0'
+                        step='0.000001'
+                        placeholder='Distância máxima entre pontos'
+                        aria-label='Distância máxima entre pontos'
+                        required) 
+                      label(for='max-dist-icp') Distância máxima entre pontos
+
+                .row.mb-2
+                  label(for='closest-type-bf') Algoritmo de ponto mais próximo
+                  #closest-type-group.btn-group(role='group')
+                    input#closest-type-bf.btn-check(type='radio' 
+                    name='closest-type' 
+                    autocomplete='off' 
+                    value='bf'
+                    checked)
+                    label.btn.btn-outline-primary(for='closest-type-bf') Brute Force
+                    input#closest-type-Tree.btn-check(type='radio' 
+                    name='closest-type' 
+                    autocomplete='off' 
+                    value='tree')
+                    label.btn.btn-outline-primary(for='closest-type-Tree') Tree
+        .d-flex.justify-content-center.my-3
+          button#startBtn.btn.btn-primary(form="cpip-form")
+            i.fas.fa-play.me-2
+            span Executar CP-ICP
+
+      #resultContainer.row.visually-hidden
+        #resultHead.d-flex.align-items-center.bg-light.mb-3
+          h5.ms-2.my-2 Resultado do CP-ICP
+          #resultSpiner.spinner-border.spinner-border-sm.ms-auto.visually-hidden(role='status')
+          button#resultReset.btn.rounded-circle.ms-auto(title="Resetar simulação")
+            i.fas.fa-redo
+        #resultBody.d-block.list-group
+        
+    #canvas.col-8.w-75.vh-100.sticky-top
+
+
+
+      
