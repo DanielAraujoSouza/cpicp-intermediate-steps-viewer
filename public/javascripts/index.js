@@ -28,201 +28,6 @@ const alertContainer = document.querySelector('#alertContainer')
 
 let resArray = []
 
-resetBtn.addEventListener('click', () => {
-  resArray = []
-  toggleFormState(true)
-  formField.reset()
-  viewer.reset()
-  resultContainer.classList.add('visually-hidden')
-  resultSpiner.classList.remove('visually-hidden')
-  resetBtn.classList.add('visually-hidden')
-  resultBody.innerHTML = ''
-})
-
-formField.addEventListener('submit', (e) => {
-  e.preventDefault()
-  alertContainer.innerHTML = ''
-
-  // Form Vadidation
-  if (srcCloudField.value.length < 4) {
-    alertContainer.append(createAlert('Select a source cloud', 'erro'))
-    return
-  }
-
-  if (tgtCloudField.value.length < 4) {
-    alertContainer.append(createAlert('Select a target cloud', 'erro'))
-    return
-  }
-
-  if (npField.value < 2) {
-    alertContainer.append(
-      createAlert(
-        'Enter a valid value for the number of partitions (>=2)',
-        'erro'
-      )
-    )
-    return
-  }
-
-  if (rmseField.value < 0) {
-    alertContainer.append(
-      createAlert('Enter a valid value for the stop criteria (>=0)', 'erro')
-    )
-    return
-  }
-
-  const axisValue = axisGroup.querySelector('input:checked').value
-  if (!['x', 'y', 'z'].includes(axisValue)) {
-    alertContainer.append(
-      createAlert('Select a valid axis (x, y or z)', 'erro')
-    )
-    return
-  }
-
-  if (deltaField.value < 0) {
-    alertContainer.append(
-      createAlert('Enter a valid value for the ICP stop criteria (>=0)', 'erro')
-    )
-    return
-  }
-
-  if (maxDistField.value <= 0) {
-    alertContainer.append(
-      createAlert(
-        'Enter a valid value for the maximum distance between points (>0)',
-        'erro'
-      )
-    )
-    return
-  }
-
-  if (numIterIcp.value <= 0) {
-    alertContainer.append(
-      createAlert(
-        'Enter a valid value for the number of ICP iterations (>0)',
-        'erro'
-      )
-    )
-    return
-  }
-
-  const closestValue = closestTypeGroup.querySelector('input:checked').value
-  if (!['bf', 'tree'].includes(closestValue)) {
-    alertContainer.append(
-      createAlert('Select a valid Nearest Point Algorithm', 'erro')
-    )
-    return
-  }
-
-  const cpicpData = {
-    srcName: srcCloudField.value,
-    tgtName: tgtCloudField.value,
-    np: +npField.value,
-    k: +numIterIcp.value,
-    rmse: +rmseField.value,
-    axis: axisValue,
-    delta: +deltaField.value,
-    maxDist: +maxDistField.value,
-    closestType: closestValue,
-  }
-
-  toggleFormState(false)
-  resultContainer.classList.remove('visually-hidden')
-  resultSpiner.classList.remove('visually-hidden')
-  resetBtn.classList.add('visually-hidden')
-
-  socket.emit('get-cpicp', cpicpData)
-})
-
-srcCloudField.addEventListener('change', () => {
-  const cloudName = srcCloudField.value
-  if (cloudName) {
-    socket.emit('get-src', cloudName)
-    viewer.removeCloudByLabel('Source cloud')
-  }
-})
-
-tgtCloudField.addEventListener('change', () => {
-  const cloudName = tgtCloudField.value
-  if (cloudName) {
-    socket.emit('get-tgt', cloudName)
-    viewer.removeCloudByLabel('Target cloud')
-  }
-})
-
-socket.on('res-src', (srcCloud) => {
-  if (srcCloud) {
-    viewer.addCloud(srcCloud, 'Source cloud', '#ff0000')
-  }
-})
-
-socket.on('res-tgt', (tgtCloud) => {
-  if (tgtCloud) {
-    viewer.addCloud(tgtCloud, 'Target cloud', '#0000cc')
-  }
-})
-
-socket.on('res-cpicp-clouds', (clouds) => {
-  resultBody.append(createListLeaf('Original Source', clouds.src))
-  resultBody.append(createListLeaf('Original Target', clouds.tgt))
-})
-
-socket.on('res-cpicp-partition', (partRes) => {
-  resArray.push(partRes)
-  const np = partRes.length
-  const partNode = createListNode(np, `${np} Partitions`, [
-    'bg-primary',
-    'text-white',
-  ])
-  resultBody.append(...Object.values(partNode))
-
-  partRes.forEach((steps, idx) => {
-    const ns = idx + 1
-    const tm = steps.icpRes ? steps.icpRes.tm : null
-    const subNode = createListNode(`${np}-${ns}`, `Step ${ns}`, [
-      'bg-info',
-      'text-white',
-    ])
-    partNode.body.append(...Object.values(subNode))
-
-    subNode.body.append(createListDesc(steps.rmseGlobal, tm, steps.time))
-    subNode.body.append(createListLeaf(`SrcPart P${np}-S${ns}`, steps.srcPart))
-    subNode.body.append(createListLeaf(`TgtPart P${np}-S${ns}`, steps.tgtPart))
-    if (steps.icpRes !== undefined) {
-      subNode.body.append(
-        createListLeaf(`srcPart Algn P${np}-S${ns}`, steps.icpRes.algnCloud)
-      )
-      subNode.body.append(
-        createListLeaf(`Global Src Algn P${np}-S${ns}`, steps.srcAlgn)
-      )
-    }
-  })
-})
-
-socket.on('res-cpicp-done', () => {
-  resultSpiner.classList.add('visually-hidden')
-  resetBtn.classList.remove('visually-hidden')
-
-  // Ranking
-  const rankedResults = resArray.flat().sort((a, b) => {
-    const rmseA = a.rmseGlobal || Number.MAX_VALUE
-    const rmseB = b.rmseGlobal || Number.MAX_VALUE
-    return rmseA - rmseB
-  })
-
-  const rankPartRes = []
-  rankedResults.forEach((e, i) => {
-    rankPartRes[e.np] = rankPartRes[e.np] || { id: e.np, rank: i + 1 }
-    document.querySelector(
-      `#itemRank-${e.np}-${e.step + 1}`
-    ).innerText = `RANK#${i + 1}`
-  })
-
-  rankPartRes.forEach((e) => {
-    document.querySelector(`#itemRank-${e.id}`).innerText = `RANK#${e.rank}`
-  })
-})
-
 function toggleFormState(enable) {
   if (enable === true) {
     formField.classList.remove('visually-hidden')
@@ -456,3 +261,198 @@ function createAlert(msg, type) {
 
   return alert
 }
+
+resetBtn.addEventListener('click', () => {
+  resArray = []
+  toggleFormState(true)
+  formField.reset()
+  viewer.reset()
+  resultContainer.classList.add('visually-hidden')
+  resultSpiner.classList.remove('visually-hidden')
+  resetBtn.classList.add('visually-hidden')
+  resultBody.innerHTML = ''
+})
+
+formField.addEventListener('submit', (e) => {
+  e.preventDefault()
+  alertContainer.innerHTML = ''
+
+  // Form Vadidation
+  if (srcCloudField.value.length < 4) {
+    alertContainer.append(createAlert('Select a source cloud', 'erro'))
+    return
+  }
+
+  if (tgtCloudField.value.length < 4) {
+    alertContainer.append(createAlert('Select a target cloud', 'erro'))
+    return
+  }
+
+  if (npField.value < 2) {
+    alertContainer.append(
+      createAlert(
+        'Enter a valid value for the number of partitions (>=2)',
+        'erro'
+      )
+    )
+    return
+  }
+
+  if (rmseField.value < 0) {
+    alertContainer.append(
+      createAlert('Enter a valid value for the stop criteria (>=0)', 'erro')
+    )
+    return
+  }
+
+  const axisValue = axisGroup.querySelector('input:checked').value
+  if (!['x', 'y', 'z'].includes(axisValue)) {
+    alertContainer.append(
+      createAlert('Select a valid axis (x, y or z)', 'erro')
+    )
+    return
+  }
+
+  if (deltaField.value < 0) {
+    alertContainer.append(
+      createAlert('Enter a valid value for the ICP stop criteria (>=0)', 'erro')
+    )
+    return
+  }
+
+  if (maxDistField.value <= 0) {
+    alertContainer.append(
+      createAlert(
+        'Enter a valid value for the maximum distance between points (>0)',
+        'erro'
+      )
+    )
+    return
+  }
+
+  if (numIterIcp.value <= 0) {
+    alertContainer.append(
+      createAlert(
+        'Enter a valid value for the number of ICP iterations (>0)',
+        'erro'
+      )
+    )
+    return
+  }
+
+  const closestValue = closestTypeGroup.querySelector('input:checked').value
+  if (!['bf', 'tree'].includes(closestValue)) {
+    alertContainer.append(
+      createAlert('Select a valid Nearest Point Algorithm', 'erro')
+    )
+    return
+  }
+
+  const cpicpData = {
+    srcName: srcCloudField.value,
+    tgtName: tgtCloudField.value,
+    np: +npField.value,
+    k: +numIterIcp.value,
+    rmse: +rmseField.value,
+    axis: axisValue,
+    delta: +deltaField.value,
+    maxDist: +maxDistField.value,
+    closestType: closestValue,
+  }
+
+  toggleFormState(false)
+  resultContainer.classList.remove('visually-hidden')
+  resultSpiner.classList.remove('visually-hidden')
+  resetBtn.classList.add('visually-hidden')
+
+  socket.emit('get-cpicp', cpicpData)
+})
+
+srcCloudField.addEventListener('change', () => {
+  const cloudName = srcCloudField.value
+  if (cloudName) {
+    socket.emit('get-src', cloudName)
+    viewer.removeCloudByLabel('Source cloud')
+  }
+})
+
+tgtCloudField.addEventListener('change', () => {
+  const cloudName = tgtCloudField.value
+  if (cloudName) {
+    socket.emit('get-tgt', cloudName)
+    viewer.removeCloudByLabel('Target cloud')
+  }
+})
+
+socket.on('res-src', (srcCloud) => {
+  if (srcCloud) {
+    viewer.addCloud(srcCloud, 'Source cloud', '#ff0000')
+  }
+})
+
+socket.on('res-tgt', (tgtCloud) => {
+  if (tgtCloud) {
+    viewer.addCloud(tgtCloud, 'Target cloud', '#0000cc')
+  }
+})
+
+socket.on('res-cpicp-clouds', (clouds) => {
+  resultBody.append(createListLeaf('Original Source', clouds.src))
+  resultBody.append(createListLeaf('Original Target', clouds.tgt))
+})
+
+socket.on('res-cpicp-partition', (partRes) => {
+  resArray.push(partRes)
+  const np = partRes.length
+  const partNode = createListNode(np, `${np} Partitions`, [
+    'bg-primary',
+    'text-white',
+  ])
+  resultBody.append(...Object.values(partNode))
+
+  partRes.forEach((steps, idx) => {
+    const ns = idx + 1
+    const tm = steps.icpRes ? steps.icpRes.tm : null
+    const subNode = createListNode(`${np}-${ns}`, `Step ${ns}`, [
+      'bg-info',
+      'text-white',
+    ])
+    partNode.body.append(...Object.values(subNode))
+
+    subNode.body.append(createListDesc(steps.rmseGlobal, tm, steps.time))
+    subNode.body.append(createListLeaf(`SrcPart P${np}-S${ns}`, steps.srcPart))
+    subNode.body.append(createListLeaf(`TgtPart P${np}-S${ns}`, steps.tgtPart))
+    if (steps.icpRes !== undefined) {
+      subNode.body.append(
+        createListLeaf(`srcPart Algn P${np}-S${ns}`, steps.icpRes.algnCloud)
+      )
+      subNode.body.append(
+        createListLeaf(`Global Src Algn P${np}-S${ns}`, steps.srcAlgn)
+      )
+    }
+  })
+})
+
+socket.on('res-cpicp-done', () => {
+  resultSpiner.classList.add('visually-hidden')
+  resetBtn.classList.remove('visually-hidden')
+
+  // Ranking
+  const rankedResults = resArray.flat().sort((a, b) => {
+    const rmseA = a.rmseGlobal || Number.MAX_VALUE
+    const rmseB = b.rmseGlobal || Number.MAX_VALUE
+    return rmseA - rmseB
+  })
+
+  const rankPartRes = []
+  rankedResults.forEach((e, i) => {
+    rankPartRes[e.np] = rankPartRes[e.np] || { id: e.np, rank: i + 1 }
+    document.querySelector(
+      `#itemRank-${e.np}-${e.step + 1}`
+    ).innerText = `RANK#${i + 1}`
+  })
+
+  rankPartRes.forEach((e) => {
+    document.querySelector(`#itemRank-${e.id}`).innerText = `RANK#${e.rank}`
+  })
+})
