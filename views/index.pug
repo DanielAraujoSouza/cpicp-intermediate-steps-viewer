@@ -16,6 +16,9 @@ block script
 block main
   .row.vw-100.m-0
     #side-bar.col-4.w-25.p-3
+      .bg-light.bg-gradient.p-2.mb-2
+        h4.text-primary CP-ICP Intermediate Steps Viewer
+      #alertContainer.row
       form#cpip-form
         #accordionConfig.accordion
           .accordion-item
@@ -24,32 +27,30 @@ block main
                 data-bs-toggle='collapse' 
                 data-bs-target='#collapseClouds' 
                 aria-expanded='true' 
-                aria-controls='collapseClouds') Nuvens
+                aria-controls='collapseClouds') Input Clouds
             #collapseClouds.accordion-collapse.collapse.show(aria-labelledby='headingClouds')
               .accordion-body
                 .row.mb-2
                   .col
                     .form-floating          
                       select#src-cloud-select.form-select.form-select-sm(name='src'
-                        aria-label='Source Cloud Input'
-                        required)
+                        aria-label='Source Cloud Input')
                         +cloudOptions
-                      label(for='src-cloud-select') Nuvem Source
+                      label(for='src-cloud-select') Source cloud
                 .row.mb-2
                   .col
                     .form-floating          
                         select#tgt-cloud-select.form-select.form-select-sm(name='tgt'
-                          aria-label='Target Cloud Input'
-                          required)
+                          aria-label='Target Cloud Input')
                           +cloudOptions
-                        label(for='tgt-cloud-select') Nuvem Target
+                        label(for='tgt-cloud-select') Target cloud
           .accordion-item
             h2#headingCpIcp.accordion-header
               button.accordion-button.collapsed(type='button' 
                 data-bs-toggle='collapse' 
                 data-bs-target='#collapseCpIcp' 
                 aria-expanded='false' 
-                aria-controls='collapseCpIcp') Parâmetros do CP-ICP
+                aria-controls='collapseCpIcp') CP-ICP Parameters
             #collapseCpIcp.accordion-collapse.collapse(aria-labelledby='headingCpIcp')
               .accordion-body
                 .row.mb-2
@@ -59,10 +60,9 @@ block main
                         name='np'
                         min='2'
                         max='30'
-                        placeholder='Número de partições'
-                        aria-label='Número de partições'
-                        required)
-                      label(for='np-cpip') Número de partições
+                        placeholder='Number of partitions'
+                        aria-label='Number of partitions')
+                      label(for='np-cpip') Number of partitions
                 
                 .row.mb-2
                   .col
@@ -72,13 +72,12 @@ block main
                         min='0'
                         max='30'
                         step='0.000001'
-                        placeholder='Critérios de parada (RMSE)'
-                        aria-label='Critérios de parada (RMSE)'
-                        required) 
-                      label(for='rmse-cpicp') Critérios de parada (RMSE)
+                        placeholder='Stop criteria (RMSE)'
+                        aria-label='Stop criteria (RMSE)') 
+                      label(for='rmse-cpicp') Stop criteria (RMSE)
 
                 .row.mb-2
-                  label(for='btnradio1') Eixo de particionamento
+                  label(for='btnradio1') Partitioning axis
                   #axis-group.btn-group(role='group')
                     input#axisradio1.btn-check(type='radio' 
                       name='axis' 
@@ -102,7 +101,7 @@ block main
                 data-bs-toggle='collapse' 
                 data-bs-target='#collapseIcp' 
                 aria-expanded='false' 
-                aria-controls='collapseIcp') Parâmetros do ICP
+                aria-controls='collapseIcp') ICP Parameters
             #collapseIcp.accordion-collapse.collapse(aria-labelledby='headingIcp')
               .accordion-body
                 .row.mb-2
@@ -113,10 +112,9 @@ block main
                         step='0.000001'
                         min='0'
                         max='30'
-                        placeholder='Critérios de parada (DELTA)'
-                        aria-label='Critérios de parada (DELTA)'
-                        required)
-                      label(for='delta-icp') Critérios de parada (DELTA)
+                        placeholder='ICP stop criteria (delta)'
+                        aria-label='ICP stop criteria (delta)')
+                      label(for='delta-icp') ICP stop criteria (delta)
                 
                 .row.mb-2
                   .col
@@ -125,13 +123,23 @@ block main
                         name='max-dist'
                         min='0'
                         step='0.000001'
-                        placeholder='Distância máxima entre pontos'
-                        aria-label='Distância máxima entre pontos'
-                        required) 
-                      label(for='max-dist-icp') Distância máxima entre pontos
-
+                        placeholder='Max distance between points'
+                        aria-label='Max distance between points') 
+                      label(for='max-dist-icp') Max distance between points
+                
                 .row.mb-2
-                  label(for='closest-type-bf') Algoritmo de ponto mais próximo
+                  .col
+                    .form-floating  
+                      input#num-iter-icp.form-control.form-control-sm(type='number'
+                        name='k'
+                        min='2'
+                        step='1'
+                        placeholder='Number of iterations'
+                        aria-label='Number of iterations') 
+                      label(for='num-iter-icp') Number of iterations
+                
+                .row.mb-2
+                  label(for='closest-type-bf') Nearest point algorithm
                   #closest-type-group.btn-group(role='group')
                     input#closest-type-bf.btn-check(type='radio' 
                     name='closest-type' 
@@ -147,18 +155,15 @@ block main
         .d-flex.justify-content-center.my-3
           button#startBtn.btn.btn-primary(form="cpip-form")
             i.fas.fa-play.me-2
-            span Executar CP-ICP
+            span Run CP-ICP
 
       #resultContainer.row.visually-hidden
         #resultHead.d-flex.align-items-center.bg-light.mb-3
           h5.ms-2.my-2 Resultado do CP-ICP
           #resultSpiner.spinner-border.spinner-border-sm.ms-auto.visually-hidden(role='status')
-          button#resultReset.btn.rounded-circle.ms-auto(title="Resetar simulação")
+          button#resultReset.btn.rounded-circle.ms-auto(title="Reset simulation")
             i.fas.fa-redo
         #resultBody.d-block.list-group
         
     #canvas.col-8.w-75.vh-100.sticky-top
-
-
-
       
