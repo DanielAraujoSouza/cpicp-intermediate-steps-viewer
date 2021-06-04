@@ -201,7 +201,7 @@ function createListDesc(rmse, tm, time) {
   if (tm) {
     const tmLbl = document.createElement('small')
     tmLbl.classList.add('text-muted')
-    tmLbl.innerHTML = '<b>Matriz de Transformação:</b>'
+    tmLbl.innerHTML = '<b>Transformation Matrix:</b>'
     tmLblRow.append(tmLbl)
 
     const tmRow = document.createElement('div')
