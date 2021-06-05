@@ -619,7 +619,7 @@ class CloudViewer {
     // Show Button
     {
       showBtn.classList.add('btn', 'visually-hidden', 'p-2')
-      showBtn.setAttribute('title', 'Mostrar Nuvem')
+      showBtn.setAttribute('title', 'Show cloud')
       showBtn.addEventListener('click', () => {
         showBtn.classList.add('visually-hidden')
         hideBtn.classList.remove('visually-hidden')
