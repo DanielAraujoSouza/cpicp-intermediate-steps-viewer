@@ -27,6 +27,97 @@ const resultBody = document.querySelector('#resultBody')
 const alertContainer = document.querySelector('#alertContainer')
 
 let resArray = []
+let tgtCloudObj
+
+const makeGifBtn = document.querySelector('#makeGif')
+
+async function insertCloudGif(
+  cloudViewer,
+  gif,
+  cloud,
+  color,
+  text,
+  removeCloud
+) {
+  const cloudName = `cloud_${new Date().getTime()}`
+  cloudViewer.addCloud(cloud, cloudName, color)
+  cloudViewer.updateCanvas()
+  const dataUrl = cloudViewer.canvas.toDataURL('image/png')
+
+  const loadPromise = new Promise((resolve) => {
+    const image = new Image()
+    image.addEventListener('load', () => {
+      resolve(image)
+    })
+    image.src = dataUrl
+  }).then((img) => {
+    const textCanvas = document.createElement('canvas')
+    textCanvas.width = cloudViewer.canvas.clientWidth
+    textCanvas.height = cloudViewer.canvas.clientHeight
+    const ctx = textCanvas.getContext('2d')
+
+    ctx.drawImage(img, 0, 0)
+    ctx.lineWidth = 1
+    ctx.fillStyle = '#CC00FF'
+    ctx.lineStyle = '#ffff00'
+    ctx.font = '18px sans-serif'
+    ctx.fillText(text, 10, 20)
+
+    gif.addFrame(ctx, { delay: 1000, copy: true })
+    return ctx
+  })
+
+  if (removeCloud) {
+    cloudViewer.removeCloudByLabel(cloudName)
+  }
+  return loadPromise
+}
+
+makeGifBtn.addEventListener('click', async () => {
+  // Disable button
+  makeGifBtn.setAttribute('disabled', 'disabled')
+  const gif = new GIF({
+    workers: 4,
+    quality: 10,
+    workerScript: '/javascripts/gif.js/gif.worker.js',
+    width: viewer.canvas.clientWidth,
+    height: viewer.canvas.clientHeight,
+  })
+  viewer.reset()
+  viewer.stopAnimation()
+
+  const promisePool = []
+  promisePool.push(
+    insertCloudGif(viewer, gif, tgtCloudObj, '#0000cc', 'Target Cloud', false)
+  )
+
+  resArray.flat().forEach((cloudRes) => {
+    if (cloudRes.srcAlgn) {
+      promisePool.push(
+        insertCloudGif(
+          viewer,
+          gif,
+          cloudRes.srcAlgn,
+          '#ff0000',
+          `np = ${cloudRes.np}, step = ${cloudRes.step}, RMSE = ${cloudRes.rmseGlobal}`,
+          true
+        )
+      )
+    }
+  })
+
+  gif.on('finished', (blob) => {
+    window.open(URL.createObjectURL(blob))
+    makeGifBtn.removeAttribute('disabled')
+  })
+
+  Promise.all(promisePool).then(() => {
+    gif.render()
+  })
+
+  // viewer.reset()
+  viewer.startAnimation()
+})
 
 function toggleFormState(enable) {
   if (enable === true) {
@@ -271,6 +362,7 @@ resetBtn.addEventListener('click', () => {
   resultSpiner.classList.remove('visually-hidden')
   resetBtn.classList.add('visually-hidden')
   resultBody.innerHTML = ''
+  makeGifBtn.classList.add('visually-hidden')
 })
 
 formField.addEventListener('submit', (e) => {
@@ -393,6 +485,7 @@ socket.on('res-src', (srcCloud) => {
 socket.on('res-tgt', (tgtCloud) => {
   if (tgtCloud) {
     viewer.addCloud(tgtCloud, 'Target cloud', '#0000cc')
+    tgtCloudObj = tgtCloud
   }
 })
 
@@ -436,6 +529,7 @@ socket.on('res-cpicp-partition', (partRes) => {
 socket.on('res-cpicp-done', () => {
   resultSpiner.classList.add('visually-hidden')
   resetBtn.classList.remove('visually-hidden')
+  makeGifBtn.classList.remove('visually-hidden')
 
   // Ranking
   const rankedResults = resArray.flat().sort((a, b) => {

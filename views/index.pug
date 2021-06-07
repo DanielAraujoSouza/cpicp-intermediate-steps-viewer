@@ -10,7 +10,8 @@ block script
   //script(src='https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js')
   //script(type='module' src='/javascripts/viewer.js')
   script(src='https://cdnjs.cloudflare.com/ajax/libs/socket.io/4.0.1/socket.io.min.js')
-  script(src='https://rawgit.com/dataarts/dat.gui/develop/build/dat.gui.js')
+  // Gif maker
+  script(src='/javascripts/gif.js/gif.js')
   script(type='module' src='/javascripts/index.js')
 
 block main
@@ -159,11 +160,14 @@ block main
 
       #resultContainer.row.visually-hidden
         #resultHead.d-flex.align-items-center.bg-light.mb-3
-          h5.ms-2.my-2 Resultado do CP-ICP
-          #resultSpiner.spinner-border.spinner-border-sm.ms-auto.visually-hidden(role='status')
-          button#resultReset.btn.rounded-circle.ms-auto(title="Reset simulation")
+          h5.ms-2.my-2.me-auto CP-ICP Result
+          #resultSpiner.spinner-border.spinner-border-sm.ms-auto.visually-hidden.link-secondary(role='status')
+          button#makeGif.btn.p-2.link-secondary(title="Make GIF")
+            i.fas.fa-film
+          button#resultReset.btn.p-2.link-secondary(title="Reset simulation")
             i.fas.fa-redo
         #resultBody.d-block.list-group
         
-    #canvas.col-8.w-75.vh-100.sticky-top
+    .col-8.w-75.sticky-top.vh-100
+      #canvas.h-100
       
