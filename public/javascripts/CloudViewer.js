@@ -11,11 +11,11 @@ import { TrackballControls } from '/javascripts/three.js/TrackballControls.js'
 
 class CloudViewer {
   constructor(containerId) {
+    this.id = Math.random() * Date.now()
     this.container = document.querySelector(containerId)
+    this.container.classList.add('position-relative')
+    this.container.id = `cloudViewer-${this.id}`
     this.canvas = this.#createCanvas()
-    this.renderer = new THREE.WebGLRenderer({
-      canvas: this.canvas,
-    })
     this.scene = new THREE.Scene()
 
     // Camera
@@ -24,7 +24,7 @@ class CloudViewer {
     this.camera.fov = 75
     this.cameraAxis = 'z'
 
-    // Cotroles
+    // Controls
     this.autoScale = true
     this.controls = new TrackballControls(this.camera, this.canvas)
     this.controls.rotateSpeed = 2.0
@@ -36,7 +36,6 @@ class CloudViewer {
 
     // Menu
     this.#createMenu()
-    this.capturePicture = false
 
     // Axis
     this.axisCanvas = this.#createAxisCanvas()
@@ -84,7 +83,10 @@ class CloudViewer {
     )
 
     // Render
-    requestAnimationFrame(this.#render.bind(this))
+    this.renderer = new THREE.WebGLRenderer({
+      canvas: this.canvas,
+    })
+    this.startAnimation()
   }
 
   addCloud(cloud, label, color) {
@@ -95,10 +97,37 @@ class CloudViewer {
 
     this.#includeMenuOption(label, cloudMesh.id, cloudColor, cloud.numpts)
 
-    if (this.autoScale) {
-      const pointSize = radius / 30
-      this.setPointSize(pointSize)
+    let pointSize = 0
+    if (this.autoScale || this.cloudGroup.children.length === 0) {
+      pointSize = radius / 30
+    } else {
+      pointSize = this.cloudGroup.children[0].material.size
     }
+
+    this.setPointSize(pointSize)
+  }
+
+  fitCanvasToCloudGroup(force = false) {
+    const { center, radius } = this.#getGroupBoundingSphere()
+
+    if (this.autoScale || force) {
+      this.controls.target.set(center.x, center.y, center.z)
+      const radFov = (this.camera.fov * Math.PI) / 180
+      const newDist = (2 * radius) / Math.tan(radFov / 2)
+
+      if (this.cameraAxis === 'x') {
+        this.camera.position.set(center.x + newDist, center.y, center.z)
+      } else if (this.cameraAxis === 'y') {
+        this.camera.position.set(center.x, center.y + newDist, center.z)
+      } else {
+        this.camera.position.set(center.x, center.y, center.z + newDist)
+      }
+    }
+
+    this.camera.updateProjectionMatrix()
+    this.controls.handleResize()
+
+    return { center, radius }
   }
 
   removeCloudByLabel(cloudLbl) {
@@ -112,11 +141,6 @@ class CloudViewer {
       this.#removeCloudById(cloudId)
       this.fitCanvasToCloudGroup()
     }
-  }
-
-  setPointSize(pointSize) {
-    this.#updateGroupPointSize(pointSize)
-    this.#updatePointSizeRange(pointSize)
   }
 
   setAutoScale(value) {
@@ -137,44 +161,33 @@ class CloudViewer {
     this.fitCanvasToCloudGroup(true)
   }
 
+  setPointSize(pointSize) {
+    this.#updateGroupPointSize(pointSize)
+    this.#updatePointSizeRange(pointSize)
+  }
+
+  startAnimation() {
+    this.renderer.setAnimationLoop(this.#render.bind(this))
+  }
+
+  stopAnimation() {
+    this.renderer.setAnimationLoop(null)
+  }
+
   reset() {
     this.cloudGroup.children.splice(0).forEach((cloudMesh) => {
       this.#removeMenuOption(cloudMesh.id)
     })
   }
 
-  fitCanvasToCloudGroup(force = false) {
-    const { center, radius } = this.#getGroupBoundingSphere()
-
-    if (this.autoScale || force) {
-      const radFov = (this.camera.fov * Math.PI) / 180
-      const newDist = (2 * radius) / Math.tan(radFov / 2)
-
-      if (this.cameraAxis === 'x') {
-        this.camera.position.set(center.x + newDist, center.y, center.z)
-      } else if (this.cameraAxis === 'y') {
-        this.camera.position.set(center.x, center.y + newDist, center.z)
-      } else {
-        this.camera.position.set(center.x, center.y, center.z + newDist)
-      }
-    }
-
-    this.controls.target.set(center.x, center.y, center.z)
-    this.camera.updateProjectionMatrix()
-    this.controls.handleResize()
-
-    return { center, radius }
+  updateCanvas() {
+    this.#render()
+    this.#render()
   }
 
   #createAxisCanvas() {
     const canvas = document.createElement('canvas')
-    canvas.classList.add(
-      'mx-4',
-      'my-2',
-      'position-absolute',
-      'bottom-0',
-      'end-0'
-    )
+    canvas.classList.add('m-2', 'position-absolute', 'bottom-0', 'end-0')
     canvas.style.setProperty('width', '8rem')
     canvas.style.setProperty('height', '8rem')
     this.container.append(canvas)
@@ -191,8 +204,14 @@ class CloudViewer {
 
   #createMenu() {
     const menuBar = document.createElement('div')
-    menuBar.classList.add('mx-4', 'my-2', 'position-absolute', 'top-0', 'end-0')
+    menuBar.classList.add('m-2', 'position-absolute', 'top-0', 'end-0')
     this.container.append(menuBar)
+
+    const offCanvas = document.createElement('div')
+    offCanvas.classList.add('offcanvas', 'offcanvas-end')
+    offCanvas.setAttribute('tabindex', -1)
+    this.container.append(offCanvas)
+    const bsOffCanvas = new bootstrap.Offcanvas(offCanvas)
 
     // Take picture
     {
@@ -209,28 +228,22 @@ class CloudViewer {
       icon.classList.add('fas', 'fa-image')
       takePicBtn.append(icon)
     }
-    // Settings Icon
+
+    // Open Settings
     {
       const settingsBtn = document.createElement('button')
       settingsBtn.classList.add('m-1', 'btn', 'btn-primary')
       settingsBtn.setAttribute('type', 'button')
-      settingsBtn.setAttribute('data-bs-toggle', 'offcanvas')
-      settingsBtn.setAttribute('data-bs-target', '#offcanvasViewer')
-      settingsBtn.setAttribute('aria-controls', 'offcanvasViewer')
       settingsBtn.setAttribute('title', 'Settings menu')
+      settingsBtn.addEventListener('click', () => {
+        bsOffCanvas.show()
+      })
       menuBar.append(settingsBtn)
 
       const icon = document.createElement('i')
       icon.classList.add('fas', 'fa-bars')
       settingsBtn.append(icon)
     }
-
-    const offCanvas = document.createElement('div')
-    offCanvas.classList.add('offcanvas', 'offcanvas-end')
-    offCanvas.id = 'offcanvasViewer'
-    offCanvas.setAttribute('tabindex', -1)
-    offCanvas.setAttribute('aria-labelledby', 'offcanvasViewerLabel')
-    this.container.append(offCanvas)
 
     // Offcanvas Header
     {
@@ -239,7 +252,6 @@ class CloudViewer {
       offCanvas.append(offCanvasHead)
 
       const offcanvasViewerLabel = document.createElement('h5')
-      offcanvasViewerLabel.id = 'offcanvasViewerLabel'
       offcanvasViewerLabel.innerText = 'Settings'
       offCanvasHead.append(offcanvasViewerLabel)
 
@@ -253,10 +265,12 @@ class CloudViewer {
 
     // Offcanvas Body
     {
-      const labelRow = document.createElement('div')
-      labelRow.id = 'offcanvas-config'
-      labelRow.classList.add('row', 'p-3', 'collapse', 'mx-2')
-      offCanvas.append(labelRow)
+      const viewSettings = document.createElement('div')
+      viewSettings.classList.add('row', 'p-3', 'collapse', 'mx-2')
+      offCanvas.append(viewSettings)
+      const viewSettingsCollapse = new bootstrap.Collapse(viewSettings, {
+        toggle: false,
+      })
 
       // Point Size
       {
@@ -264,17 +278,16 @@ class CloudViewer {
         labelPtSize.classList.add('form-label')
         labelPtSize.setAttribute('for', 'pointSize')
         labelPtSize.innerText = 'Point size'
-        labelRow.append(labelPtSize)
+        viewSettings.append(labelPtSize)
 
         const inputRangePtSize = document.createElement('input')
-        inputRangePtSize.id = 'pointSizeRange'
-        inputRangePtSize.classList.add('form-range')
+        inputRangePtSize.classList.add('pointSizeRange', 'form-range')
         inputRangePtSize.setAttribute('type', 'range')
         inputRangePtSize.setAttribute('min', 0)
         inputRangePtSize.addEventListener('input', (e) => {
           this.#updateGroupPointSize(e.target.value)
         })
-        labelRow.append(inputRangePtSize)
+        viewSettings.append(inputRangePtSize)
       }
 
       // Camera angle
@@ -283,10 +296,9 @@ class CloudViewer {
         labelCamFov.classList.add('form-label')
         labelCamFov.setAttribute('for', 'pointSize')
         labelCamFov.innerText = 'Field of view (angle)'
-        labelRow.append(labelCamFov)
+        viewSettings.append(labelCamFov)
 
         const inputRangeCamFov = document.createElement('input')
-        inputRangeCamFov.id = 'pointSizeRange'
         inputRangeCamFov.classList.add('form-range')
         inputRangeCamFov.setAttribute('type', 'range')
         inputRangeCamFov.setAttribute('min', 1)
@@ -296,77 +308,77 @@ class CloudViewer {
         inputRangeCamFov.addEventListener('input', (e) => {
           this.#updateCamFov(e.target.value)
         })
-        labelRow.append(inputRangeCamFov)
+        viewSettings.append(inputRangeCamFov)
       }
 
-      // Standard camera axis
+      // Default camera axis
       {
         const axisLabel = document.createElement('label')
         axisLabel.classList.add('form-label')
-        axisLabel.innerText = 'Standard camera axis'
-        labelRow.append(axisLabel)
+        axisLabel.innerText = 'Default camera axis'
+        viewSettings.append(axisLabel)
 
         const axisBtnGroup = document.createElement('div')
         axisBtnGroup.classList.add('btn-group', 'btn-group-sm')
         axisBtnGroup.setAttribute('role', 'group')
-        axisBtnGroup.setAttribute('aria-label', 'Standard camera axis')
-        labelRow.append(axisBtnGroup)
+        axisBtnGroup.setAttribute('aria-label', 'Default camera axis')
+        viewSettings.append(axisBtnGroup)
 
         // X
         const axisInputX = document.createElement('input')
-        axisInputX.id = 'axisCamX'
+        axisInputX.id = `axisCamX-${this.id}`
         axisInputX.classList.add('btn-check')
         axisInputX.setAttribute('type', 'radio')
-        axisInputX.setAttribute('name', 'axis-cam')
+        axisInputX.setAttribute('name', `axisCam-${this.id}`)
         axisInputX.setAttribute('autocomplete', 'off')
         axisInputX.setAttribute('value', 'x')
-        axisInputX.addEventListener('change', (e) => {
-          this.setCameraAxis(e.target.value)
+        axisInputX.addEventListener('change', () => {
+          this.setCameraAxis('x')
         })
         axisBtnGroup.append(axisInputX)
 
         const axisLabelX = document.createElement('label')
         axisLabelX.classList.add('btn', 'btn-outline-primary')
-        axisLabelX.setAttribute('for', 'axisCamX')
+        axisLabelX.setAttribute('for', `axisCamX-${this.id}`)
         axisLabelX.innerText = 'X'
         axisBtnGroup.append(axisLabelX)
 
         // Y
         const axisInputY = document.createElement('input')
-        axisInputY.id = 'axisCamY'
+        axisInputY.id = `axisCamY-${this.id}`
         axisInputY.classList.add('btn-check')
         axisInputY.setAttribute('type', 'radio')
-        axisInputY.setAttribute('name', 'axis-cam')
+        axisInputY.setAttribute('name', `axisCam-${this.id}`)
         axisInputY.setAttribute('autocomplete', 'off')
         axisInputY.setAttribute('value', 'y')
-        axisInputY.addEventListener('change', (e) => {
-          this.setCameraAxis(e.target.value)
+        axisInputY.addEventListener('change', () => {
+          this.setCameraAxis('y')
         })
         axisBtnGroup.append(axisInputY)
 
         const axisLabelY = document.createElement('label')
         axisLabelY.classList.add('btn', 'btn-outline-primary')
-        axisLabelY.setAttribute('for', 'axisCamY')
+        axisLabelY.setAttribute('for', `axisCamY-${this.id}`)
         axisLabelY.innerText = 'Y'
         axisBtnGroup.append(axisLabelY)
 
-        // Z (Standard)
+        // Z (Default)
         const axisInputZ = document.createElement('input')
-        axisInputZ.id = 'axisCamZ'
+        axisInputZ.id = `axisCamZ-${this.id}`
         axisInputZ.classList.add('btn-check')
         axisInputZ.setAttribute('type', 'radio')
-        axisInputZ.setAttribute('name', 'axis-cam')
+        axisInputZ.setAttribute('name', `axisCam-${this.id}`)
         axisInputZ.setAttribute('autocomplete', 'off')
         axisInputZ.setAttribute('checked', 'checked')
-        axisInputZ.setAttribute('value', 'z')
-        axisInputZ.addEventListener('change', (e) => {
-          this.setCameraAxis(e.target.value)
+        axisInputZ.setAttribute('value', `z`)
+        axisInputZ.addEventListener('change', () => {
+          this.setCameraAxis('z')
         })
         axisBtnGroup.append(axisInputZ)
 
         const axisLabelZ = document.createElement('label')
         axisLabelZ.classList.add('btn', 'btn-outline-primary')
-        axisLabelZ.setAttribute('for', 'axisCamZ')
+        axisLabelZ.setAttribute('for', `axisCamZ-${this.id}`)
         axisLabelZ.innerText = 'Z'
         axisBtnGroup.append(axisLabelZ)
       }
@@ -375,10 +387,10 @@ class CloudViewer {
       {
         const autoResize = document.createElement('div')
         autoResize.classList.add('form-check', 'form-switch', 'mt-3')
-        labelRow.append(autoResize)
+        viewSettings.append(autoResize)
 
         const inputAutoResize = document.createElement('input')
-        inputAutoResize.id = 'autoResizeSwitch'
+        inputAutoResize.id = `autoResizeSwitch-${this.id}`
         inputAutoResize.classList.add('form-check-input')
         inputAutoResize.setAttribute('type', 'checkbox')
         inputAutoResize.setAttribute('checked', 'checked')
@@ -389,7 +401,7 @@ class CloudViewer {
 
         const labelAutoResize = document.createElement('label')
         labelAutoResize.classList.add('form-check-label')
-        labelAutoResize.setAttribute('for', 'autoResizeSwitch')
+        labelAutoResize.setAttribute('for', `autoResizeSwitch-${this.id}`)
         labelAutoResize.innerText = 'Automatic resizing'
         autoResize.append(labelAutoResize)
       }
@@ -439,11 +451,10 @@ class CloudViewer {
         // Show Viewer Config
         const configBtn = document.createElement('button')
         configBtn.classList.add('btn', 'rounded-circle')
-        configBtn.setAttribute('data-bs-toggle', 'collapse')
-        configBtn.setAttribute('href', '#offcanvas-config')
-        configBtn.setAttribute('role', 'button')
-        configBtn.setAttribute('aria-controls', 'offcanvas-config')
         configBtn.setAttribute('title', 'View Settings')
+        configBtn.addEventListener('click', () => {
+          viewSettingsCollapse.toggle()
+        })
         cloudRow.append(configBtn)
 
         const configBtnIcon = document.createElement('i')
@@ -453,8 +464,13 @@ class CloudViewer {
 
       // Container of Clouds
       const cloudOptions = document.createElement('div')
-      cloudOptions.id = 'cloudContainer'
-      cloudOptions.classList.add('container', 'overflow-auto', 'h-auto', 'p-1')
+      cloudOptions.classList.add(
+        'cloudContainer',
+        'container',
+        'overflow-auto',
+        'h-auto',
+        'p-1'
+      )
       offCanvas.append(cloudOptions)
     }
   }
@@ -536,13 +552,11 @@ class CloudViewer {
   }
 
   #includeMenuOption(label, id, color, size) {
-    let offCanvas = this.container.querySelector('#offcanvasViewer')
-
-    if (!offCanvas) {
+    if (!this.container.querySelector('.offcanvas')) {
       this.#createMenu()
     }
 
-    const cloudContainer = this.container.querySelector('#cloudContainer')
+    const cloudContainer = this.container.querySelector('.cloudContainer')
 
     const row = document.createElement('div')
     row.classList.add(
@@ -687,7 +701,6 @@ class CloudViewer {
       this.controls.handleResize()
     }
     this.renderer.render(this.scene, this.camera)
-    requestAnimationFrame(this.#render.bind(this))
     this.controls.update()
 
     this.axisCamera.position.copy(this.camera.position)
@@ -696,12 +709,6 @@ class CloudViewer {
     this.axisCamera.lookAt(this.axisScene.position)
 
     this.axisRender.render(this.axisScene, this.axisCamera)
-
-    if (this.capturePicture == true) {
-      this.capturePicture = false
-      const imgData = this.renderer.domElement.toDataURL()
-      this.#downloadFile(imgData, `viwer-${new Date().getTime()}.png`)
-    }
   }
 
   #resizeRendererToDisplaySize() {
@@ -724,7 +731,9 @@ class CloudViewer {
   }
 
   #takePicture() {
-    this.capturePicture = true
+    this.#render()
+    const imgData = this.renderer.domElement.toDataURL()
+    this.#downloadFile(imgData, `viwer-${new Date().getTime()}.png`)
   }
 
   #updateCamFov(fov) {
@@ -760,7 +769,7 @@ class CloudViewer {
   }
 
   #updatePointSizeRange(pointSize) {
-    let pointSizeRange = this.container.querySelector('#pointSizeRange')
+    let pointSizeRange = this.container.querySelector('.pointSizeRange')
     pointSizeRange.setAttribute('max', pointSize * 4)
     pointSizeRange.setAttribute('step', pointSize / 100)
     pointSizeRange.setAttribute('value', pointSize)
