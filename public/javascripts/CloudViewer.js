@@ -6,8 +6,8 @@
  * @author Daniel Araújo Chaves Souza (daniel_araujo@alu.ufc.br)
  * @year 2021
  */
-import * as THREE from '/javascripts/three.js/three.module.min.js'
-import { TrackballControls } from '/javascripts/three.js/TrackballControls.js'
+import * as THREE from './three.js/three.module.min.js'
+import { TrackballControls } from './three.js/TrackballControls.js'
 
 class CloudViewer {
   constructor(containerId) {

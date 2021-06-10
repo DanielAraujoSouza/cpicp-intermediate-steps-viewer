@@ -1,4 +1,4 @@
-import CloudViewer from '/javascripts/CloudViewer.js'
+import CloudViewer from './CloudViewer.js'
 
 const socket = io()
 

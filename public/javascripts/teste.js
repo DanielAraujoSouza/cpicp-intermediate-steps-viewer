@@ -1,4 +1,4 @@
-import CloudViewer from '/javascripts/CloudViewer.js'
+import CloudViewer from './CloudViewer.js'
 
 const viewer1 = new CloudViewer('#canvas1')
 const viewer2 = new CloudViewer('#canvas2')
