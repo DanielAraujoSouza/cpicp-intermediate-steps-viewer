@@ -28,10 +28,11 @@ const alertContainer = document.querySelector('#alertContainer')
 
 let resArray = []
 let tgtCloudObj
+let srcCloudObj
 
 const makeGifBtn = document.querySelector('#makeGif')
 
-async function insertCloudGif(
+async function insertCloudGifFrame(
   cloudViewer,
   gif,
   cloud,
@@ -83,18 +84,42 @@ makeGifBtn.addEventListener('click', async () => {
     width: viewer.canvas.clientWidth,
     height: viewer.canvas.clientHeight,
   })
+  let pointSize = 0
+  if (viewer.cloudGroup.children.length > 0) {
+    pointSize = viewer.cloudGroup.children[0].material.size
+  }
   viewer.reset()
   viewer.stopAnimation()
 
   const promisePool = []
   promisePool.push(
-    insertCloudGif(viewer, gif, tgtCloudObj, '#0000cc', 'Target Cloud', false)
+    insertCloudGifFrame(
+      viewer,
+      gif,
+      tgtCloudObj,
+      '#0000cc',
+      'Target Cloud',
+      false
+    )
+  )
+  if (pointSize > 0) {
+    viewer.setPointSize(pointSize)
+  }
+  promisePool.push(
+    insertCloudGifFrame(
+      viewer,
+      gif,
+      srcCloudObj,
+      '#ff0000',
+      'Source Cloud',
+      true
+    )
   )
 
   resArray.flat().forEach((cloudRes) => {
     if (cloudRes.srcAlgn) {
       promisePool.push(
-        insertCloudGif(
+        insertCloudGifFrame(
           viewer,
           gif,
           cloudRes.srcAlgn,
@@ -479,6 +504,7 @@ tgtCloudField.addEventListener('change', () => {
 socket.on('res-src', (srcCloud) => {
   if (srcCloud) {
     viewer.addCloud(srcCloud, 'Source cloud', '#ff0000')
+    srcCloudObj = srcCloud
   }
 })
 

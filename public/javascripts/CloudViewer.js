@@ -18,11 +18,18 @@ class CloudViewer {
     this.canvas = this.#createCanvas()
     this.scene = new THREE.Scene()
 
+    // Rotation
+    this.targetQuaternion = undefined
+    this.q1 = new THREE.Quaternion()
+    this.q2 = new THREE.Quaternion()
+    this.targetPosition = new THREE.Vector3()
+    this.dummy = new THREE.Object3D()
+    this.clock = new THREE.Clock(true)
+
     // Camera
     this.camera = new THREE.PerspectiveCamera()
     this.camera.aspect = this.canvas.clientWidth / this.canvas.clientHeight
     this.camera.fov = 75
-    this.cameraAxis = 'z'
 
     // Controls
     this.autoScale = true
@@ -88,7 +95,6 @@ class CloudViewer {
     })
     this.startAnimation()
   }
-
   addCloud(cloud, label, color) {
     const cloudColor = new THREE.Color(color)
     const cloudMesh = this.#generateCloudMesh(cloud, label, cloudColor)
@@ -115,13 +121,11 @@ class CloudViewer {
       const radFov = (this.camera.fov * Math.PI) / 180
       const newDist = (2 * radius) / Math.tan(radFov / 2)
 
-      if (this.cameraAxis === 'x') {
-        this.camera.position.set(center.x + newDist, center.y, center.z)
-      } else if (this.cameraAxis === 'y') {
-        this.camera.position.set(center.x, center.y + newDist, center.z)
-      } else {
-        this.camera.position.set(center.x, center.y, center.z + newDist)
-      }
+      this.camera.position
+        .subVectors(center, this.camera.position)
+        .normalize()
+        .multiplyScalar(-newDist)
+        .add(center)
     }
 
     this.camera.updateProjectionMatrix()
@@ -148,17 +152,32 @@ class CloudViewer {
   }
 
   setCameraAxis(axis) {
+    const { center, radius } = this.#getGroupBoundingSphere()
+    this.targetQuaternion = new THREE.Quaternion()
+
     if (axis === 'x') {
-      this.cameraAxis = 'x'
-      this.camera.up.set(0, 0, 1)
+      this.targetPosition.set(1, 0, 0)
+      this.targetQuaternion.setFromEuler(new THREE.Euler(0, Math.PI * 0.5, 0))
     } else if (axis === 'y') {
-      this.cameraAxis = 'y'
-      this.camera.up.set(1, 0, 0)
+      this.targetPosition.set(0, 1, 0)
+      this.targetQuaternion.setFromEuler(new THREE.Euler(-Math.PI * 0.5, 0, 0))
     } else {
-      this.cameraAxis = 'z'
-      this.camera.up.set(0, 1, 0)
+      this.targetPosition.set(0, 0, 1)
+      this.targetQuaternion.setFromEuler(new THREE.Euler())
     }
-    this.fitCanvasToCloudGroup(true)
+
+    const radFov = (this.camera.fov * Math.PI) / 180
+    const newDist = (2 * radius) / Math.tan(radFov / 2)
+
+    this.targetPosition.multiplyScalar(newDist).add(center)
+
+    this.dummy.position.copy(center)
+
+    this.dummy.lookAt(this.camera.position)
+    this.q1.copy(this.dummy.quaternion)
+
+    this.dummy.lookAt(this.targetPosition)
+    this.q2.copy(this.dummy.quaternion)
   }
 
   setPointSize(pointSize) {
@@ -693,13 +712,33 @@ class CloudViewer {
     }
   }
 
-  #render() {
+  #render(time) {
     if (this.#resizeRendererToDisplaySize()) {
       const cv = this.renderer.domElement
       this.camera.aspect = cv.clientWidth / cv.clientHeight
       this.camera.updateProjectionMatrix()
       this.controls.handleResize()
     }
+
+    if (this.targetQuaternion !== undefined) {
+      this.controls.enabled = false
+      const step = this.clock.getDelta() * 4
+      const { center, radius } = this.#getGroupBoundingSphere()
+
+      this.q1.rotateTowards(this.q2, step)
+      this.camera.position
+        .set(0, 0, 1)
+        .applyQuaternion(this.q1)
+        .multiplyScalar(radius * 3)
+        .add(center)
+
+      if (this.q1.angleTo(this.q2) === 0) {
+        this.targetQuaternion = undefined
+        this.clock = new THREE.Clock()
+        this.controls.enabled = true
+      }
+    }
+
     this.renderer.render(this.scene, this.camera)
     this.controls.update()
 

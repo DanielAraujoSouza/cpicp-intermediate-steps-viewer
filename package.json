@@ -15,7 +15,6 @@
     "fs": "*",
     "http-errors": "~1.6.3",
     "morgan": "~1.9.1",
-    "pcl-module": "file:../pcl-module",
     "pontu-module": "file:../pontu-module",
     "pug": "^3.0.2",
     "socket.io": "^4.1.2"
