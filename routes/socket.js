@@ -5,7 +5,6 @@ const cpicp = require('cpicp-module')
 
 async function getCloud(cloudName) {
   const directoryPath = path.join(__dirname, '..', 'clouds', cloudName)
-  console.log(directoryPath)
   return pontu.cloud_load(directoryPath)
 }
 
@@ -39,7 +38,7 @@ module.exports = (http) => {
       socket.emit('res-cpicp-clouds', { src, tgt })
 
       let bestReg = {}
-      for (let np = 2; np <= cpicpData.np; np++) {
+      for (let np = 2; np <= cpicpData.np; np += 1) {
         const [srcPart, tgtPart] = await Promise.all([
           cpicp.CloudPartitioning(src, np, cpicpData.axis),
           cpicp.CloudPartitioning(tgt, np, cpicpData.axis),
@@ -48,8 +47,8 @@ module.exports = (http) => {
         console.log('Particionado')
 
         const stepRes = []
-        for (let i = 0; i < np; i++) {
-          const startTime = process.hrtime()
+        for (let i = 0; i < np; i += 1) {
+          const startTime = process.hrtime.bigint()
           stepRes[i] = {
             np,
             step: i,
@@ -57,33 +56,29 @@ module.exports = (http) => {
           stepRes[i].srcPart = srcPart[i]
           stepRes[i].tgtPart = tgtPart[i]
 
-          const icpRes = await pontu
-            .registration_icp(
-              srcPart[i],
-              tgtPart[i],
-              cpicpData.delta,
-              cpicpData.k,
-              cpicpData.maxDist,
-              cpicpData.closestType
-            )
-            .catch(() => undefined)
+          const icpRes = pontu.registration_icp_sync(
+            srcPart[i],
+            tgtPart[i],
+            cpicpData.delta,
+            cpicpData.k,
+            cpicpData.maxDist,
+            cpicpData.closestType
+          )
 
           stepRes[i].icpRes = icpRes
 
-          if (icpRes !== undefined) {
-            const srcAlgn = await pontu.cloud_transform(src, icpRes.tm)
-            console.log('Fim Alinhamento')
-            const rmse = await pontu.cloud_rmse(
+          if (icpRes !== null) {
+            const srcAlgn = pontu.cloud_transform_sync(src, icpRes.tm)
+            const rmse = pontu.cloud_rmse_sync(
               srcAlgn,
               tgt,
               cpicpData.maxDist,
               cpicpData.closestType
             )
-            console.log('Fim RMSE')
             stepRes[i].rmseGlobal = rmse
             stepRes[i].srcAlgn = srcAlgn
 
-            if (bestReg === undefined || rmse < bestReg.rmse) {
+            if (bestReg.rmse === undefined || rmse < bestReg.rmse) {
               bestReg = {
                 rmse,
                 converged: rmse <= cpicpData.rmse,
@@ -94,8 +89,9 @@ module.exports = (http) => {
           if (bestReg.rmse <= cpicpData.rmse) {
             break
           }
-          const endTime = process.hrtime(startTime)
-          stepRes[i].time = `${endTime[0]}s ${endTime[1] / 1000}ms`
+          const endTime = process.hrtime.bigint()
+          const totalTime = Number(endTime - startTime) / 10 ** 6
+          stepRes[i].time = `${totalTime} ms`
         }
         socket.emit('res-cpicp-partition', stepRes)
         if (bestReg.rmse <= cpicpData.rmse) {

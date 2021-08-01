@@ -6,8 +6,8 @@
  * @author Daniel Araújo Chaves Souza (daniel_araujo@alu.ufc.br)
  * @year 2021
  */
-import * as THREE from '/javascripts/three.js/three.module.min.js'
-import { TrackballControls } from '/javascripts/three.js/TrackballControls.js'
+import * as THREE from './three.js/three.module.min.js'
+import { TrackballControls } from './three.js/TrackballControls.js'
 
 class CloudViewer {
   constructor(containerId) {
@@ -95,6 +95,7 @@ class CloudViewer {
     })
     this.startAnimation()
   }
+
   addCloud(cloud, label, color) {
     const cloudColor = new THREE.Color(color)
     const cloudMesh = this.#generateCloudMesh(cloud, label, cloudColor)
@@ -535,12 +536,9 @@ class CloudViewer {
       res[i * 3 + 1] = e.y
       res[i * 3 + 2] = e.z
       return res
-    }, new Array(cloud.points.length * 3))
+    }, new Float32Array(cloud.points.length * 3))
 
-    geometry.setAttribute(
-      'position',
-      new THREE.Float32BufferAttribute(pointArr, 3)
-    )
+    geometry.setAttribute('position', new THREE.BufferAttribute(pointArr, 3))
     geometry.computeBoundingSphere()
     const radius = geometry.boundingSphere.radius
 
