@@ -14,7 +14,7 @@ Aplicação [Node.js](https://nodejs.org/) para execução e visualização das 
 
 ## Instalação
 
-> **OBS:** Se ainda não possuir nenhuma versão do Node.JS [faça o download e instale](https://nodejs.org/en/download/).
+> **OBS:** Se ainda não possuir nenhuma versão do Node.JS [faça o download e o instale](https://nodejs.org/en/download/).
 
 Faça o download e instalação dos módulos **pontu-module** e **cpicp-module**, seguindo a documentação dos mesmos.
 
@@ -30,7 +30,7 @@ Acesse o diretório do projeto, a partir do terminal, e execute o comando abaixo
 npm install
 ```
 
-> **OBS:** Esse procedimento supõe que os módulo **pontu-module** e **cpicp-module** estão instalados, no mesmo nível de diretório que contem **cpicp-intermediate-steps-viewer**.
+> **OBS:** O passo anterior supõe que os módulo **pontu-module** e **cpicp-module** estão localizados, no mesmo nível de diretório que **cpicp-intermediate-steps-viewer**.
 >
 > ```bash
 > ./
@@ -50,19 +50,21 @@ npm install
 >  },
 > ...
 > ```
+>
+> Em seguida, repita o passo anterior (`npm install`).
 
 ## Uso
 
-Para iniciar a aplicação, acesse o diretório do projeto e execute no terminal:
+Para iniciar a aplicação, dentro do diretório do projeto, execute no terminal:
 
 ```bash
 npm start
 ```
 
-Caso deseje iniciar a aplicação utilizando a ferramenta [nodemon](https://nodemon.io/), que reinicia a aplicação caso haja alguma midificação em algum dos arquivos do projeto, execute no terminal:
-
-```bash
-npm run devstart
-```
+> **OBS:**Caso deseje iniciar a aplicação utilizando a ferramenta [nodemon](https://nodemon.io/), que reinicia a aplicação caso haja alguma midificação em algum dos arquivos do projeto, execute no terminal:
+>
+> ```bash
+> npm run devstart
+> ```
 
 Após iniciar a aplicação, basta acessá-la, em seu navegador web, através do endereço: **http://localhost:3000**.
