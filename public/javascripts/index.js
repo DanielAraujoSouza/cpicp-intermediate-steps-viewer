@@ -32,6 +32,8 @@ let srcCloudObj
 
 const makeGifBtn = document.querySelector('#makeGif')
 
+let execStartTime = 0
+
 async function insertCloudGifFrame(
   cloudViewer,
   gif,
@@ -482,6 +484,7 @@ formField.addEventListener('submit', (e) => {
   resultSpiner.classList.remove('visually-hidden')
   resetBtn.classList.add('visually-hidden')
 
+  execStartTime = performance.now()
   socket.emit('get-cpicp', cpicpData)
 })
 
@@ -543,7 +546,7 @@ socket.on('res-cpicp-partition', (partRes) => {
     subNode.body.append(createListLeaf(`TgtPart P${np}-S${ns}`, steps.tgtPart))
     if (steps.icpRes !== undefined) {
       subNode.body.append(
-        createListLeaf(`srcPart Algn P${np}-S${ns}`, steps.icpRes.algnCloud)
+        createListLeaf(`SrcPart Algn P${np}-S${ns}`, steps.icpRes.algnCloud)
       )
       subNode.body.append(
         createListLeaf(`Global Src Algn P${np}-S${ns}`, steps.srcAlgn)
@@ -553,6 +556,8 @@ socket.on('res-cpicp-partition', (partRes) => {
 })
 
 socket.on('res-cpicp-done', () => {
+  const execTime = performance.now() - execStartTime
+  console.log(`Time: ${execTime} ms`)
   resultSpiner.classList.add('visually-hidden')
   resetBtn.classList.remove('visually-hidden')
   makeGifBtn.classList.remove('visually-hidden')

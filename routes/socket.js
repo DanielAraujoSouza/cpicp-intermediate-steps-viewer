@@ -5,7 +5,6 @@ const cpicp = require('cpicp-module')
 
 async function getCloud(cloudName) {
   const directoryPath = path.join(__dirname, '..', 'clouds', cloudName)
-  console.log(directoryPath)
   return pontu.cloud_load(directoryPath)
 }
 
@@ -49,7 +48,7 @@ module.exports = (http) => {
 
         const stepRes = []
         for (let i = 0; i < np; i++) {
-          const startTime = process.hrtime()
+          const startTime = process.hrtime.bigint()
           stepRes[i] = {
             np,
             step: i,
@@ -83,7 +82,7 @@ module.exports = (http) => {
             stepRes[i].rmseGlobal = rmse
             stepRes[i].srcAlgn = srcAlgn
 
-            if (bestReg === undefined || rmse < bestReg.rmse) {
+            if (bestReg.rmse === undefined || rmse < bestReg.rmse) {
               bestReg = {
                 rmse,
                 converged: rmse <= cpicpData.rmse,
@@ -94,8 +93,9 @@ module.exports = (http) => {
           if (bestReg.rmse <= cpicpData.rmse) {
             break
           }
-          const endTime = process.hrtime(startTime)
-          stepRes[i].time = `${endTime[0]}s ${endTime[1] / 1000}ms`
+          const endTime = process.hrtime.bigint()
+          const totalTime = Number(endTime - startTime) / 10 ** 6
+          stepRes[i].time = `${totalTime} ms`
         }
         socket.emit('res-cpicp-partition', stepRes)
         if (bestReg.rmse <= cpicpData.rmse) {
