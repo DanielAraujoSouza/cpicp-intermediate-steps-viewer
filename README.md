@@ -61,7 +61,7 @@ Para iniciar a aplicação, dentro do diretório do projeto, execute no terminal
 npm start
 ```
 
-> **OBS:**Caso deseje iniciar a aplicação utilizando a ferramenta [nodemon](https://nodemon.io/), que reinicia a aplicação caso haja alguma midificação em algum dos arquivos do projeto, execute no terminal:
+> **OBS:** Caso deseje iniciar a aplicação utilizando a ferramenta [nodemon](https://nodemon.io/), que reinicia a aplicação caso haja alguma midificação em algum dos arquivos do projeto, execute no terminal:
 >
 > ```bash
 > npm run devstart
