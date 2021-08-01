@@ -36,7 +36,7 @@ npm install
 > ./
 > ├── cpicp-intermediate-steps-viewer
 > ├── cpicp-module
-> ├── pontu-module
+> └── pontu-module
 > ```
 >
 > Caso contrário, modifique o aquivo `package.json` para o conter o path correto para esses dois módulos.
