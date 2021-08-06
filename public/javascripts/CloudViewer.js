@@ -100,18 +100,9 @@ class CloudViewer {
     const cloudColor = new THREE.Color(color)
     const cloudMesh = this.#generateCloudMesh(cloud, label, cloudColor)
     this.cloudGroup.add(cloudMesh)
-    const { _, radius } = this.fitCanvasToCloudGroup()
+    this.fitCanvasToCloudGroup()
 
     this.#includeMenuOption(label, cloudMesh.id, cloudColor, cloud.numpts)
-
-    let pointSize = 0
-    if (this.autoScale || this.cloudGroup.children.length === 0) {
-      pointSize = radius / 30
-    } else {
-      pointSize = this.cloudGroup.children[0].material.size
-    }
-
-    this.setPointSize(pointSize)
   }
 
   fitCanvasToCloudGroup(force = false) {
@@ -127,12 +118,12 @@ class CloudViewer {
         .normalize()
         .multiplyScalar(-newDist)
         .add(center)
+
+      this.#fitPointSize(force)
     }
 
     this.camera.updateProjectionMatrix()
     this.controls.handleResize()
-
-    return { center, radius }
   }
 
   removeCloudByLabel(cloudLbl) {
@@ -529,6 +520,15 @@ class CloudViewer {
     link.remove()
   }
 
+  #fitPointSize(force = false) {
+    if (this.autoScale || this.cloudGroup.children.length === 0 || force) {
+      const { center, radius } = this.#getGroupBoundingSphere()
+      this.setPointSize(radius / 30)
+    } else {
+      this.setPointSize(this.cloudGroup.children[0].material.size)
+    }
+  }
+
   #generateCloudMesh(cloud, label, color, pointSize) {
     const geometry = new THREE.BufferGeometry()
     const pointArr = cloud.points.reduce((res, e, i) => {
@@ -687,6 +687,9 @@ class CloudViewer {
       removeBtn.addEventListener('click', () => {
         row.remove()
         this.#removeCloudById(id)
+        if (this.autoScale) {
+          this.fitCanvasToCloudGroup()
+        }
       })
       row.append(removeBtn)
 
@@ -809,7 +812,7 @@ class CloudViewer {
     let pointSizeRange = this.container.querySelector('.pointSizeRange')
     pointSizeRange.setAttribute('max', pointSize * 4)
     pointSizeRange.setAttribute('step', pointSize / 100)
-    pointSizeRange.setAttribute('value', pointSize)
+    pointSizeRange.value = pointSize
   }
 }
 
